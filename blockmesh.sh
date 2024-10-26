@@ -11,6 +11,9 @@ read -p "请输入您的邮箱: " USER_EMAIL
 read -sp "请输入您的密码 (包含特殊字符): " USER_PASSWORD
 echo
 
+# 选择注册或登录
+read -p "您是新用户吗？输入 'y' 注册新账户，或输入 'n' 直接登录: " is_new_user
+
 # 更新系统
 echo "正在更新系统..."
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -53,13 +56,23 @@ source "$SHELL_PROFILE"
 echo "正在创建 Blockmesh screen 会话..."
 screen -dmS Blockmesh
 
-# 注册节点
-echo "正在注册节点..."
-$HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD"
+# 注册或登录
+if [[ "$is_new_user" == "y" || "$is_new_user" == "Y" ]]; then
+    echo "正在注册新账户..."
+    $HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD"
+    if [[ $? -ne 0 ]]; then
+        echo "注册失败。请检查您的邮箱和密码是否有效，或可能已注册。"
+        exit 1
+    fi
+fi
 
 # 登录 Blockmesh 客户端
 echo "正在登录 Blockmesh 客户端..."
 $HOME/target/release/blockmesh-cli login --email "$USER_EMAIL" --password "$USER_PASSWORD"
+if [[ $? -ne 0 ]]; then
+    echo "登录失败。请检查您的邮箱和密码，或在 https://app.blockmesh.xyz/register 确认账户状态。"
+    exit 1
+fi
 
 echo "Blockmesh 安装与配置完成！您可以使用 'screen -r Blockmesh' 查看日志。"
 echo "请确保退出 VPS 前使用 CTRL+A+D 组合键分离屏幕。"
