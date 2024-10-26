@@ -84,9 +84,16 @@ start_blockmesh_client() {
 }
 
 view_logs_in_screen() {
-    if screen -list | grep -q "Blockmesh"; then
+    sessions=$(screen -list | grep "Blockmesh")
+    if [[ -n "$sessions" ]]; then
+        log_info "检测到以下 Blockmesh 会话："
+        echo "$sessions"
+        read -p "请输入会话ID以恢复会话，或按回车以查看默认会话： " session_id
+        if [[ -z "$session_id" ]]; then
+            session_id=$(echo "$sessions" | awk '{print $1}' | head -n 1)
+        fi
         log_info "进入 Blockmesh 屏幕会话以查看日志。按 CTRL+A 然后 D 来退出会话。"
-        screen -r Blockmesh
+        screen -r "$session_id"
     else
         log_warning "Blockmesh 客户端未运行，无法查看日志。请先启动客户端。"
     fi
