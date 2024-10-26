@@ -53,7 +53,6 @@ initialize_setup() {
 
 cleanup_existing_sessions() {
     log_info "检查并清理多余的 Blockmesh 会话..."
-    # 退出所有名为 "Blockmesh" 的会话
     screen -list | grep "Blockmesh" | awk '{print $1}' | xargs -r -n 1 screen -S {} -X quit
     log_success "已清理所有与 Blockmesh 项目相关的会话。"
 }
@@ -90,10 +89,9 @@ view_logs_in_screen() {
         log_info "检测到以下 Blockmesh 会话："
         echo "$sessions"
         
-        # 自动选择最新的会话
         latest_session=$(echo "$sessions" | awk '{print $1}' | head -n 1)
         read -p "按回车自动进入最新会话 [$latest_session]，或输入其他会话ID以恢复： " session_id
-        session_id=${session_id:-$latest_session}  # 如果用户输入为空，则使用最新会话ID
+        session_id=${session_id:-$latest_session}
 
         log_info "进入 Blockmesh 屏幕会话以查看日志。按 CTRL+A 然后 D 来退出会话。"
         screen -r "$session_id"
@@ -103,6 +101,12 @@ view_logs_in_screen() {
 }
 
 while true; do
+    clear
+
+    # 每次显示菜单时下载并显示 logo
+    curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash
+    sleep 3
+
     echo -e "${BOLD}请选择一个选项：${NC}"
     echo "1) 初始化系统并安装 Blockmesh"
     echo "2) 启动 Blockmesh 客户端"
@@ -118,4 +122,3 @@ while true; do
         *) log_warning "无效的选择，请重试。" ;;
     esac
 done
-
