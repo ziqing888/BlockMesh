@@ -59,10 +59,11 @@ screen -dmS Blockmesh
 # 注册或登录
 if [[ "$is_new_user" == "y" || "$is_new_user" == "Y" ]]; then
     echo "正在注册新账户..."
-    $HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD"
-    if [[ $? -ne 0 ]]; then
-        echo "注册失败。请检查您的邮箱和密码是否有效，或可能已注册。"
-        exit 1
+    register_output=$($HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD" 2>&1)
+    if echo "$register_output" | grep -q "User with this email already exists"; then
+        echo "用户已存在，跳过注册。"
+    elif [[ $? -ne 0 ]]; then
+        echo "注册失败，请检查输入信息或尝试直接登录。"
     fi
 fi
 
