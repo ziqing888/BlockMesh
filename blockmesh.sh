@@ -79,6 +79,7 @@ while true; do
                     echo "登录失败。请检查您的邮箱和密码，或在 https://app.blockmesh.xyz/register 确认账户状态。"
                 else
                     echo "登录成功！"
+                    read -n 1 -s -r -p "按任意键返回主菜单..."
                 fi
             fi
             ;;
@@ -98,3 +99,4 @@ while true; do
             ;;
     esac
 done
+
