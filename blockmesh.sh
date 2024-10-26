@@ -1,29 +1,15 @@
 #!/bin/bash
 
-# 检查是否为 root 用户
-if [[ $EUID -ne 0 ]]; then
-   echo "请使用 root 权限执行此脚本"
-   exit 1
-fi
+# 初始化邮箱和密码变量
+USER_EMAIL=""
+USER_PASSWORD=""
 
-# 提示用户输入邮箱和密码
-read -p "请输入您的邮箱: " USER_EMAIL
-read -sp "请输入您的密码 (包含特殊字符): " USER_PASSWORD
-echo
-
-# 打开注册页面，让用户手动完成注册
-echo "正在打开注册页面，请在浏览器中完成注册..."
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    xdg-open "https://app.blockmesh.xyz/register?invite_code=16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    open "https://app.blockmesh.xyz/register?invite_code=16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
-else
-    echo "无法自动打开浏览器，请手动访问以下链接完成注册："
-    echo "https://app.blockmesh.xyz/register?invite_code=16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
-fi
-
-# 等待用户完成注册
-read -p "请在浏览器中完成注册，然后按回车键继续..."
+# 定义一个函数，用于输入邮箱和密码
+function input_credentials() {
+    read -p "请输入您的邮箱: " USER_EMAIL
+    read -sp "请输入您的密码 (包含特殊字符): " USER_PASSWORD
+    echo
+}
 
 # 更新系统
 echo "正在更新系统..."
@@ -67,13 +53,48 @@ source "$SHELL_PROFILE"
 echo "正在创建 Blockmesh screen 会话..."
 screen -dmS Blockmesh
 
-# 登录 Blockmesh 客户端
-echo "正在登录 Blockmesh 客户端..."
-$HOME/target/release/blockmesh-cli login --email "$USER_EMAIL" --password "$USER_PASSWORD"
-if [[ $? -ne 0 ]]; then
-    echo "登录失败。请检查您的邮箱和密码，或在 https://app.blockmesh.xyz/register 确认账户状态。"
-    exit 1
-fi
+# 交互菜单
+while true; do
+    echo
+    echo "Blockmesh 配置和管理菜单，请选择一个操作："
+    echo "1. 填写或更新登录信息"
+    echo "2. 登录 Blockmesh 客户端"
+    echo "3. 查看 Blockmesh 日志"
+    echo "4. 分离 Blockmesh screen 会话"
+    echo "5. 退出脚本"
+    read -p "请输入选项编号 (1/2/3/4/5): " choice
 
-echo "Blockmesh 安装与配置完成！您可以使用 'screen -r Blockmesh' 查看日志。"
-echo "请确保退出 VPS 前使用 CTRL+A+D 组合键分离屏幕。"
+    case $choice in
+        1)
+            echo "填写或更新登录信息..."
+            input_credentials
+            ;;
+        2)
+            if [[ -z "$USER_EMAIL" || -z "$USER_PASSWORD" ]]; then
+                echo "请先选择选项 1 填写登录信息。"
+            else
+                echo "正在登录 Blockmesh 客户端..."
+                $HOME/target/release/blockmesh-cli login --email "$USER_EMAIL" --password "$USER_PASSWORD"
+                if [[ $? -ne 0 ]]; then
+                    echo "登录失败。请检查您的邮箱和密码，或在 https://app.blockmesh.xyz/register 确认账户状态。"
+                else
+                    echo "登录成功！"
+                fi
+            fi
+            ;;
+        3)
+            echo "显示 Blockmesh 日志..."
+            screen -r Blockmesh
+            ;;
+        4)
+            echo "分离 Blockmesh screen 会话中，请使用 CTRL+A+D 组合键..."
+            ;;
+        5)
+            echo "退出脚本。"
+            break
+            ;;
+        *)
+            echo "无效选项，请重新输入。"
+            ;;
+    esac
+done
