@@ -6,13 +6,12 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# 提示用户输入邮箱、密码和邀请码
+# 提示用户输入邮箱和密码
 read -p "请输入您的邮箱: " USER_EMAIL
 read -sp "请输入您的密码 (包含特殊字符): " USER_PASSWORD
 echo
 read -sp "请再次输入您的密码进行确认: " CONFIRM_PASSWORD
 echo
-read -p "请输入邀请码: " INVITE_CODE
 
 # 检查密码确认是否匹配
 if [[ "$USER_PASSWORD" != "$CONFIRM_PASSWORD" ]]; then
@@ -65,7 +64,8 @@ source "$SHELL_PROFILE"
 echo "正在创建 Blockmesh screen 会话..."
 screen -dmS Blockmesh
 
-# 注册或登录
+# 使用固定的邀请码进行注册或直接登录
+INVITE_CODE="16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
 if [[ "$is_new_user" == "y" || "$is_new_user" == "Y" ]]; then
     echo "正在注册新账户..."
     register_output=$($HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD" --invite "$INVITE_CODE" 2>&1)
