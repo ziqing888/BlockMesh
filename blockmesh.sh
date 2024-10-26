@@ -53,8 +53,9 @@ initialize_setup() {
 
 cleanup_existing_sessions() {
     log_info "检查并清理多余的 Blockmesh 会话..."
+    # 退出所有名为 "Blockmesh" 的会话
     screen -list | grep "Blockmesh" | awk '{print $1}' | xargs -r -n 1 screen -S {} -X quit
-    log_success "已清理所有多余的 Blockmesh 会话。"
+    log_success "已清理所有与 Blockmesh 项目相关的会话。"
 }
 
 start_blockmesh_client() {
@@ -88,10 +89,12 @@ view_logs_in_screen() {
     if [[ -n "$sessions" ]]; then
         log_info "检测到以下 Blockmesh 会话："
         echo "$sessions"
-        read -p "请输入会话ID以恢复会话，或按回车以查看默认会话： " session_id
-        if [[ -z "$session_id" ]]; then
-            session_id=$(echo "$sessions" | awk '{print $1}' | head -n 1)
-        fi
+        
+        # 自动选择最新的会话
+        latest_session=$(echo "$sessions" | awk '{print $1}' | head -n 1)
+        read -p "按回车自动进入最新会话 [$latest_session]，或输入其他会话ID以恢复： " session_id
+        session_id=${session_id:-$latest_session}  # 如果用户输入为空，则使用最新会话ID
+
         log_info "进入 Blockmesh 屏幕会话以查看日志。按 CTRL+A 然后 D 来退出会话。"
         screen -r "$session_id"
     else
@@ -115,3 +118,4 @@ while true; do
         *) log_warning "无效的选择，请重试。" ;;
     esac
 done
+
