@@ -74,11 +74,12 @@ while true; do
                 echo "请先选择选项 1 填写登录信息。"
             else
                 echo "正在登录 Blockmesh 客户端..."
-                $HOME/target/release/blockmesh-cli login --email "$USER_EMAIL" --password "$USER_PASSWORD"
+                $HOME/target/release/blockmesh-cli login --email "$USER_EMAIL" --password "$USER_PASSWORD" &> login_output.log
                 if [[ $? -ne 0 ]]; then
                     echo "登录失败。请检查您的邮箱和密码，或在 https://app.blockmesh.xyz/register 确认账户状态。"
                 else
-                    echo "登录成功！"
+                    clear
+                    echo "成功登录！"
                     read -n 1 -s -r -p "按任意键返回主菜单..."
                 fi
             fi
