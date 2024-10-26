@@ -10,17 +10,20 @@ fi
 read -p "请输入您的邮箱: " USER_EMAIL
 read -sp "请输入您的密码 (包含特殊字符): " USER_PASSWORD
 echo
-read -sp "请再次输入您的密码进行确认: " CONFIRM_PASSWORD
-echo
 
-# 检查密码确认是否匹配
-if [[ "$USER_PASSWORD" != "$CONFIRM_PASSWORD" ]]; then
-    echo "两次输入的密码不匹配，请重新运行脚本并确保输入一致的密码。"
-    exit 1
+# 打开注册页面，让用户手动完成注册
+echo "正在打开注册页面，请在浏览器中完成注册..."
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    xdg-open "https://app.blockmesh.xyz/register?invite_code=16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    open "https://app.blockmesh.xyz/register?invite_code=16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
+else
+    echo "无法自动打开浏览器，请手动访问以下链接完成注册："
+    echo "https://app.blockmesh.xyz/register?invite_code=16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
 fi
 
-# 选择注册或登录
-read -p "您是新用户吗？输入 'y' 注册新账户，或输入 'n' 直接登录: " is_new_user
+# 等待用户完成注册
+read -p "请在浏览器中完成注册，然后按回车键继续..."
 
 # 更新系统
 echo "正在更新系统..."
@@ -63,18 +66,6 @@ source "$SHELL_PROFILE"
 # 创建 Blockmesh screen 会话
 echo "正在创建 Blockmesh screen 会话..."
 screen -dmS Blockmesh
-
-# 使用固定的邀请码进行注册或直接登录
-INVITE_CODE="16c1d8f0-5523-40ef-9b0f-6f3bb335d792"
-if [[ "$is_new_user" == "y" || "$is_new_user" == "Y" ]]; then
-    echo "正在注册新账户..."
-    register_output=$($HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD" --invite "$INVITE_CODE" 2>&1)
-    if echo "$register_output" | grep -q "User with this email already exists"; then
-        echo "用户已存在，跳过注册。"
-    elif [[ $? -ne 0 ]]; then
-        echo "注册失败，请检查输入信息或尝试直接登录。"
-    fi
-fi
 
 # 登录 Blockmesh 客户端
 echo "正在登录 Blockmesh 客户端..."
