@@ -11,6 +11,14 @@ read -p "请输入您的邮箱: " USER_EMAIL
 read -sp "请输入您的密码 (包含特殊字符): " USER_PASSWORD
 echo
 
+# 询问是否有邀请码
+read -p "您有邀请码吗？输入 'y' 填写邀请码，或输入 'n' 跳过: " has_invite_code
+if [[ "$has_invite_code" == "y" || "$has_invite_code" == "Y" ]]; then
+    read -p "请输入邀请码: " INVITE_CODE
+else
+    INVITE_CODE=""
+fi
+
 # 选择注册或登录
 read -p "您是新用户吗？输入 'y' 注册新账户，或输入 'n' 直接登录: " is_new_user
 
@@ -59,7 +67,11 @@ screen -dmS Blockmesh
 # 注册或登录
 if [[ "$is_new_user" == "y" || "$is_new_user" == "Y" ]]; then
     echo "正在注册新账户..."
-    register_output=$($HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD" 2>&1)
+    if [[ -n "$INVITE_CODE" ]]; then
+        register_output=$($HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD" --invite "$INVITE_CODE" 2>&1)
+    else
+        register_output=$($HOME/target/release/blockmesh-cli register --email "$USER_EMAIL" --password "$USER_PASSWORD" 2>&1)
+    fi
     if echo "$register_output" | grep -q "User with this email already exists"; then
         echo "用户已存在，跳过注册。"
     elif [[ $? -ne 0 ]]; then
@@ -77,3 +89,4 @@ fi
 
 echo "Blockmesh 安装与配置完成！您可以使用 'screen -r Blockmesh' 查看日志。"
 echo "请确保退出 VPS 前使用 CTRL+A+D 组合键分离屏幕。"
+
