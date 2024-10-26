@@ -1,62 +1,108 @@
 #!/bin/bash
 
-# 函数：初始化安装与配置
+# 颜色代码和文本样式变量
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+UNDERLINE='\033[4m'
+NC='\033[0m'
+
+# 图标定义
+INFO_ICON="ℹ️"
+SUCCESS_ICON="✅"
+WARNING_ICON="⚠️"
+ERROR_ICON="❌"
+
+# 信息显示函数
+log_info() { echo -e "${BLUE}${INFO_ICON} ${1}${NC}"; }
+log_success() { echo -e "${GREEN}${SUCCESS_ICON} ${1}${NC}"; }
+log_warning() { echo -e "${YELLOW}${WARNING_ICON} ${1}${NC}"; }
+log_error() { echo -e "${RED}${ERROR_ICON} ${1}${NC}"; }
+
+INSTALL_DIR="$HOME/blockmesh"
+mkdir -p "$INSTALL_DIR"
+
 initialize_setup() {
-    echo "开始系统更新和依赖安装..."
+    log_info "开始系统更新和依赖安装..."
     sudo apt update && sudo apt upgrade -y
-    sudo apt install -y screen
-    echo "系统更新和依赖安装完成。"
+    
+    if ! command -v screen &> /dev/null; then
+        sudo apt install -y screen
+    fi
+    log_success "系统更新和依赖安装完成。"
 
-    echo "下载 Blockmesh CLI..."
-    wget https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.307/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz
-    echo "解压 Blockmesh CLI..."
-    tar -xvzf blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz
+    log_info "下载 Blockmesh CLI..."
+    if ! wget -q -O "$INSTALL_DIR/blockmesh-cli.tar.gz" https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.307/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz; then
+        log_error "下载失败，请检查网络连接。"
+        return
+    fi
 
-    echo "添加 Blockmesh 到 PATH..."
-    echo 'export PATH="$PATH:~/target/release"' >> ~/.bashrc
+    log_info "解压 Blockmesh CLI..."
+    tar -xvzf "$INSTALL_DIR/blockmesh-cli.tar.gz" -C "$INSTALL_DIR"
+    rm -f "$INSTALL_DIR/blockmesh-cli.tar.gz"
+
+    log_info "添加 Blockmesh 到 PATH..."
+    echo 'export PATH="$PATH:'"$INSTALL_DIR"'/target/release"' >> ~/.bashrc
     source ~/.bashrc
-    echo "初始化完成。"
+    log_success "初始化完成。"
 }
 
-# 函数：清理已有的 Blockmesh 会话
 cleanup_existing_sessions() {
-    echo "检查并清理多余的 Blockmesh 会话..."
+    log_info "检查并清理多余的 Blockmesh 会话..."
     screen -list | grep "Blockmesh" | awk '{print $1}' | xargs -r -n 1 screen -S {} -X quit
-    echo "已清理所有多余的 Blockmesh 会话。"
+    log_success "已清理所有多余的 Blockmesh 会话。"
 }
 
-# 函数：启动 Blockmesh 客户端
 start_blockmesh_client() {
-    # 清理之前的会话，确保只有一个会话
     cleanup_existing_sessions
 
-    # 启动新的会话
     read -p "请输入您的邮箱: " user_email
+    if [[ -z "$user_email" ]]; then
+        log_error "邮箱不能为空。"
+        return
+    fi
+
     read -sp "请输入您的密码: " user_password
     echo
-    screen -dmS Blockmesh blockmesh-cli login --email "$user_email" --password "$user_password"
-    sleep 2  # 等待 2 秒以确保客户端启动
+    if [[ -z "$user_password" ]]; then
+        log_error "密码不能为空。"
+        return
+    fi
 
-    # 检查是否成功启动
+    screen -dmS Blockmesh blockmesh-cli login --email "$user_email" --password "$user_password"
+    sleep 2
+
     if screen -list | grep -q "Blockmesh"; then
-        echo "Blockmesh 客户端已成功启动并在后台运行。"
+        log_success "Blockmesh 客户端已成功启动并在后台运行。"
     else
-        echo "启动 Blockmesh 客户端失败，请检查邮箱和密码是否正确。"
+        log_error "启动 Blockmesh 客户端失败，请检查邮箱和密码是否正确。"
     fi
 }
 
-# 显示菜单
+view_logs_in_screen() {
+    if screen -list | grep -q "Blockmesh"; then
+        log_info "进入 Blockmesh 屏幕会话以查看日志。按 CTRL+A 然后 D 来退出会话。"
+        screen -r Blockmesh
+    else
+        log_warning "Blockmesh 客户端未运行，无法查看日志。请先启动客户端。"
+    fi
+}
+
 while true; do
-    echo "请选择一个选项："
+    echo -e "${BOLD}请选择一个选项：${NC}"
     echo "1) 初始化系统并安装 Blockmesh"
     echo "2) 启动 Blockmesh 客户端"
-    echo "3) 退出脚本"
+    echo "3) 进入 Blockmesh 屏幕会话查看日志"
+    echo "4) 退出脚本"
     read -p "请输入您的选择: " choice
 
     case $choice in
         1) initialize_setup ;;
         2) start_blockmesh_client ;;
-        3) echo "退出脚本"; break ;;
-        *) echo "无效的选择，请重试。" ;;
+        3) view_logs_in_screen ;;
+        4) log_info "退出脚本"; break ;;
+        *) log_warning "无效的选择，请重试。" ;;
     esac
 done
