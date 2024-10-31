@@ -8,25 +8,10 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'  # 还原颜色
 
-# 图标定义
-INFO_ICON="ℹ️"
-SUCCESS_ICON="✅"
-WARNING_ICON="⚠️"
-ERROR_ICON="❌"
-
 # 信息显示函数
-log_info() { echo -e "${BLUE}${INFO_ICON} ${1}${NC}"; }
-log_success() { echo -e "${GREEN}${SUCCESS_ICON} ${1}${NC}"; }
-log_warning() { echo -e "${YELLOW}${WARNING_ICON} ${1}${NC}"; }
-log_error() { echo -e "${RED}${ERROR_ICON} ${1}${NC}"; }
-
-# 检查必要的命令是否安装
-for cmd in curl wget; do
-    if ! command -v $cmd &> /dev/null; then
-        log_error "$cmd 未安装，请先安装 $cmd。"
-        exit 1
-    fi
-done
+log_info() { echo -e "${BLUE}ℹ️ ${1}${NC}"; }
+log_success() { echo -e "${GREEN}✅ ${1}${NC}"; }
+log_error() { echo -e "${RED}❌ ${1}${NC}"; }
 
 # 初始化所有环境
 initialize_environment() {
@@ -42,14 +27,11 @@ initialize_environment() {
 
     # 系统更新
     log_info "更新系统..."
-    apt update && apt upgrade -y || {
-        log_error "系统更新失败，请检查网络连接。"
-        exit 1
-    }
+    apt update && apt upgrade -y
 
     # 清理旧文件
     log_info "清理旧文件..."
-    rm -rf blockmesh-cli.tar.gz blockmesh-cli
+    rm -rf blockmesh-cli.tar.gz target
 
     # 安装 Docker
     log_info "检查 Docker 是否已安装..."
@@ -58,10 +40,7 @@ initialize_environment() {
         apt-get install -y ca-certificates curl gnupg lsb-release
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io || {
-            log_error "Docker 安装失败，请检查网络连接或权限。"
-            exit 1
-        }
+        apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
         log_success "Docker 安装完成。"
     else
         log_success "Docker 已安装，跳过..."
@@ -70,23 +49,13 @@ initialize_environment() {
     # 安装 Docker Compose
     log_info "安装 Docker Compose..."
     curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose || {
-        log_error "Docker Compose 安装失败。"
-        exit 1
-    }
-    log_success "Docker Compose 安装完成。"
+    chmod +x /usr/local/bin/docker-compose
 
-    # 下载和解压 BlockMesh CLI
+    # 下载和解压 BlockMesh CLI 到 target/release
     log_info "下载并解压 BlockMesh CLI..."
-    curl -L https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.316/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz -o blockmesh-cli.tar.gz || {
-        log_error "下载失败，请检查网络连接。"
-        exit 1
-    }
-    tar -xzf blockmesh-cli.tar.gz || {
-        log_error "解压失败，请检查下载的文件。"
-        exit 1
-    }
-    chmod +x blockmesh-cli
+    mkdir -p target/release
+    curl -L https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.316/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz -o blockmesh-cli.tar.gz
+    tar -xzf blockmesh-cli.tar.gz -C target/release
     rm -f blockmesh-cli.tar.gz
     log_success "BlockMesh CLI 下载并解压完成。"
 }
@@ -97,10 +66,6 @@ get_user_credentials() {
     echo "请输入您的 BlockMesh 密码（输入时不会显示在终端）:"
     read -s -p "密码: " password
     echo
-    if [[ -z "$email" || -z "$password" ]]; then
-        log_error "Email 和密码不能为空。"
-        exit 1
-    fi
 }
 
 # 运行 Docker 容器
@@ -109,31 +74,29 @@ run_docker_container() {
 
     # 检查是否存在同名的正在运行的容器
     if [ "$(docker ps -aq -f name=blockmesh-cli-container)" ]; then
-        log_warning "检测到已有同名容器，正在移除旧容器..."
-        docker rm -f blockmesh-cli-container || {
-            log_error "无法移除旧容器，请手动检查容器状态。"
-            exit 1
-        }
+        docker rm -f blockmesh-cli-container
     fi
 
     # 启动新容器
     docker run -it --rm \
         --name blockmesh-cli-container \
-        -v $(pwd):/app \
+        -v $(pwd)/target/release:/app \
         -e EMAIL="$email" \
         -e PASSWORD="$password" \
         --workdir /app \
-        ubuntu:22.04 /bin/bash -c "./blockmesh-cli --email \"\$EMAIL\" --password \"\$PASSWORD\"" || {
+        ubuntu:22.04 ./blockmesh-cli --email "$email" --password "$password"
+    
+    if [ $? -ne 0 ]; then
         log_error "Docker 容器启动失败，请检查 Docker 是否正常运行。"
         exit 1
-    }
+    fi
     log_success "Docker 容器已成功运行 BlockMesh CLI。"
 }
 
-# 菜单并加载 BlockMesh logo
+# 主循环显示 BlockMesh logo
 show_menu() {
     clear
-    # 加载 logo
+    # 加载 BlockMesh logo
     curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash || {
         log_warning "无法加载 BlockMesh Logo，请检查网络连接。"
     }
@@ -159,13 +122,12 @@ while true; do
         2) get_user_credentials ;;
         3) 
             if [[ -z "$email" || -z "$password" ]]; then
-                log_warning "请先输入登录信息 (选项 2)。"
+                log_error "请先输入登录信息 (选项 2)。"
             else
                 run_docker_container
             fi
             ;;
         4) log_info "退出脚本"; break ;;
-        *) log_warning "无效的选择，请重试。" ;;
+        *) log_error "无效的选择，请重试。" ;;
     esac
-    read -p "按 Enter 键返回菜单..."
 done
