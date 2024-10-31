@@ -81,7 +81,7 @@ log_success "BlockMesh CLI 下载并解压完成。"
 
 # 用户输入
 read -p "请输入您的 BlockMesh 邮箱: " email
-read -s -p "请输入您的 BlockMesh 密码: " password
+read -s -p "请输入您的 BlockMesh 密码(密码不会在终端显示）: " password
 echo
 
 # 运行 Docker 容器
