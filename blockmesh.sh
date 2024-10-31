@@ -20,12 +20,19 @@ log_success() { echo -e "${GREEN}${SUCCESS_ICON} ${1}${NC}"; }
 log_warning() { echo -e "${YELLOW}${WARNING_ICON} ${1}${NC}"; }
 log_error() { echo -e "${RED}${ERROR_ICON} ${1}${NC}"; }
 
+# 检查必要的命令是否安装
+for cmd in curl wget; do
+    if ! command -v $cmd &> /dev/null; then
+        log_error "$cmd 未安装，请先安装 $cmd。"
+        exit 1
+    fi
+done
+
 # 初始化所有环境
 initialize_environment() {
     clear
     log_info "显示 BlockMesh logo..."
     wget -O loader.sh https://raw.githubusercontent.com/DiscoverMyself/Ramanode-Guides/main/loader.sh && chmod +x loader.sh && ./loader.sh
-    curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash
     sleep 2
 
     # 系统更新
@@ -68,6 +75,7 @@ initialize_environment() {
     mkdir -p target/release
     curl -L https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.316/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz -o blockmesh-cli.tar.gz
     tar -xzf blockmesh-cli.tar.gz -C target/release
+    chmod +x target/release/blockmesh-cli
     if [ $? -ne 0 ]; then
         log_error "BlockMesh CLI 下载或解压失败，请检查网络连接。"
         exit 1
@@ -101,8 +109,8 @@ run_docker_container() {
         -e EMAIL="$email" \
         -e PASSWORD="$password" \
         --workdir /app \
-        ubuntu:22.04 ./blockmesh-cli --email "$email" --password "$password"
-        
+        ubuntu:22.04 /bin/bash -c "./blockmesh-cli --email \"\$EMAIL\" --password \"\$PASSWORD\""
+
     if [ $? -ne 0 ]; then
         log_error "Docker 容器启动失败，请检查 Docker 是否正常运行。"
         exit 1
@@ -116,6 +124,7 @@ show_menu() {
     # 加载 logo
     curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash
     echo
+
     # 显示方框菜单
     echo -e "${YELLOW}${BOLD}╔════════════════════════════════════════╗${NC}"
     echo -e "${YELLOW}${BOLD}║           🚀 BlockMesh CLI 菜单        ║${NC}"
