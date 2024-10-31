@@ -17,12 +17,8 @@ log_error() { echo -e "${RED}❌ ${1}${NC}"; }
 initialize_environment() {
     clear
     log_info "显示 BlockMesh logo..."
-    wget -O loader.sh https://raw.githubusercontent.com/DiscoverMyself/Ramanode-Guides/main/loader.sh && chmod +x loader.sh && ./loader.sh || {
-        log_error "Failed to load loader.sh."
-    }
-    curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash || {
-        log_error "Failed to load BlockMesh logo."
-    }
+    wget -O loader.sh https://raw.githubusercontent.com/DiscoverMyself/Ramanode-Guides/main/loader.sh && chmod +x loader.sh && ./loader.sh
+    curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash
     sleep 2
 
     # 系统更新
@@ -51,11 +47,10 @@ initialize_environment() {
     curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
 
-    # 下载和解压 BlockMesh CLI 到 target/release
+    # 下载和解压 BlockMesh CLI 到当前目录
     log_info "下载并解压 BlockMesh CLI..."
-    mkdir -p target/release
     curl -L https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.316/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz -o blockmesh-cli.tar.gz
-    tar -xzf blockmesh-cli.tar.gz -C target/release
+    tar -xzf blockmesh-cli.tar.gz
     rm -f blockmesh-cli.tar.gz
     log_success "BlockMesh CLI 下载并解压完成。"
 }
@@ -77,10 +72,10 @@ run_docker_container() {
         docker rm -f blockmesh-cli-container
     fi
 
-    # 启动新容器
+    # 挂载当前目录并启动容器
     docker run -it --rm \
         --name blockmesh-cli-container \
-        -v $(pwd)/target/release:/app \
+        -v $(pwd):/app \
         -e EMAIL="$email" \
         -e PASSWORD="$password" \
         --workdir /app \
@@ -97,9 +92,7 @@ run_docker_container() {
 show_menu() {
     clear
     # 加载 BlockMesh logo
-    curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash || {
-        log_warning "无法加载 BlockMesh Logo，请检查网络连接。"
-    }
+    curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/refs/heads/main/logo.sh | bash
     echo
 
     # 显示方框菜单
