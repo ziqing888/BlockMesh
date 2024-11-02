@@ -75,7 +75,7 @@ log_success "Docker Compose 安装成功。"
 
 # 下载并解压 BlockMesh CLI
 log_info "下载并解压 BlockMesh CLI..."
-curl -L https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.316/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz -o blockmesh-cli.tar.gz
+curl -L https://github.com/block-mesh/block-mesh-monorepo/releases/download/v0.0.325/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz -o blockmesh-cli.tar.gz
 tar -xzf blockmesh-cli.tar.gz
 log_success "BlockMesh CLI 下载并解压完成。"
 
